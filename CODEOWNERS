@@ -1,0 +1,2 @@
+# Main owners are Identity reviewers but also allow reviews from all iOS SDK reviewers 
+* @stripe/ios-identity-reviewers @stripe/ios-sdk-reviewers @stripe/ios-sdk-non-core-reviewers

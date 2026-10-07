@@ -1,0 +1,42 @@
+identity-ios-mediapipe
+Copyright (c) 2026- Stripe, Inc. (https://stripe.com)
+
+This repository's scripts and wrapper sources are licensed under the MIT
+license. See LICENSE.
+
+---------------------------------------------------------
+
+MediaPipe
+
+The xcframeworks published with each release of this repository are built from
+the MediaPipeTasksVision and MediaPipeTasksCommon binaries published by
+Google. The upstream version is recorded in MEDIAPIPE_VERSION and in each
+release's notes, and MEDIAPIPE_SOURCES lists the exact archives used.
+
+  Copyright The MediaPipe Authors.
+  https://github.com/google-ai-edge/mediapipe
+
+MediaPipe is licensed under the Apache License, Version 2.0. The complete
+license text is provided as LICENSE-MediaPipe.
+
+Stripe changed the upstream binaries as follows. No MediaPipe source code was
+changed, and the changes are made by Scripts/refresh_artifacts.sh.
+
+MediaPipeTasksVision.xcframework and MediaPipeTasksCommon.xcframework:
+
+  * Removed the x86_64 architecture from the simulator slice, and renamed that
+    slice from ios-arm64_x86_64-simulator to ios-arm64-simulator.
+  * Rewrote the Info.plist of each framework and updated the Info.plist of
+    each xcframework to match the remaining architectures.
+  * Merged the Objective-C members of each static library into a single
+    pre-linked object file, so that they link without the -ObjC linker flag.
+
+MediaPipeCommonGraphLibraries.xcframework:
+
+  * Wrapped the upstream graph libraries
+    (libMediaPipeTasksCommon_device_graph.a and
+    libMediaPipeTasksCommon_simulator_graph.a) in a static framework with a
+    generated umbrella header, module map and Info.plist, and combined them
+    into an xcframework.
+  * Removed the x86_64 architecture from the simulator slice.
+  * Merged Objective-C members into a pre-linked object file, as above.

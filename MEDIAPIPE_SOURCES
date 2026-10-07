@@ -1,0 +1,4 @@
+# The unmodified archives Google publishes for the version in MEDIAPIPE_VERSION.
+# <sha256>  <url>
+5191fca73bcb9883770c5b987d812b15fcfbffd0bcd46d64a91adf5e89dda91f  https://dl.google.com/cpdc/20250131-063213/MediaPipeTasksVision-0.10.21.tar.gz
+1cb1eed8e9eb7868a93fa3c3ce3a341e352620158f29f9799800376f651bd004  https://dl.google.com/cpdc/20250131-063213/MediaPipeTasksCommon-0.10.21.tar.gz
