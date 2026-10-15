@@ -39,8 +39,40 @@ done
 
 rm -rf "$DIST" && mkdir -p "$DIST"
 
+# zip records file times, owners and directory order, so the same files would
+# give a different zip, and a different checksum, on every build.
+reproducible_zip() {
+  python3 - "$@" <<'PY'
+import os, shutil, stat, sys, zipfile
+archive, root, *paths = sys.argv[1:]
+names = []
+for path in paths:
+    names.append(path)
+    for parent, dirs, files in os.walk(os.path.join(root, path)):
+        relative = os.path.relpath(parent, root)
+        # Finder creates .DS_Store files, which would make the zip depend on the machine.
+        names += [os.path.join(relative, d) for d in dirs] + [os.path.join(relative, f) for f in files if f != ".DS_Store"]
+with zipfile.ZipFile(archive, "w") as z:
+    for name in sorted(names):
+        full = os.path.join(root, name)
+        if os.path.islink(full):
+            sys.exit("error: %s is a symlink" % name)
+        # 1980-01-01 is the earliest time a zip can store.
+        if os.path.isdir(full):
+            info = zipfile.ZipInfo(name + "/", (1980, 1, 1, 0, 0, 0))
+            info.external_attr = (stat.S_IFDIR | 0o755) << 16
+            z.writestr(info, b"")
+            continue
+        info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+        info.external_attr = (stat.S_IFREG | (0o755 if os.access(full, os.X_OK) else 0o644)) << 16
+        info.compress_type = zipfile.ZIP_DEFLATED
+        with open(full, "rb") as source, z.open(info, "w") as target:
+            shutil.copyfileobj(source, target)
+PY
+}
+
 for name in MediaPipeTasksVision MediaPipeCommonGraphLibraries MediaPipeTasksCommon; do
-  ( cd "$ARTIFACTS" && zip -qry "$DIST/$name.xcframework.zip" "$name.xcframework" )
+  reproducible_zip "$DIST/$name.xcframework.zip" "$ARTIFACTS" "$name.xcframework"
   sum="$(swift package compute-checksum "$DIST/$name.xcframework.zip")"
   echo "$name  $sum"
   python3 - "$ROOT/Package.swift" "$name" "$sum" <<'PY'
@@ -55,13 +87,16 @@ open(path, "w").write(s)
 PY
 done
 
-( cd "$ROOT" && zip -qry "$DIST/StripeMediaPipe-$VERSION.zip" Artifacts Sources LICENSE LICENSE-MediaPipe NOTICE )
+reproducible_zip "$DIST/StripeMediaPipe-$VERSION.zip" "$ROOT" Artifacts Sources LICENSE LICENSE-MediaPipe NOTICE
 
 sed -i '' "s|^let version = \".*\"|let version = \"$VERSION\"|" "$ROOT/Package.swift"
 sed -i '' "s|^  s.version                  = '.*'|  s.version                  = '$VERSION'|" "$ROOT/StripeMediaPipe.podspec"
 
+# The checksums only reproduce with the same Xcode, so the release notes record it.
+XCODE="$(xcodebuild -version | head -1) ($(xcodebuild -version | awk '/Build version/ {print $3}'))"
+
 echo
-echo "Assets are in Dist/. Commit Package.swift, then run:"
-echo "  git tag $VERSION && git push origin $VERSION"
-echo "  gh release create $VERSION Dist/* --title $VERSION --notes \"MediaPipeTasksVision $MEDIAPIPE_VERSION\""
+echo "Assets are in Dist/. Commit Package.swift in a pull request. After it merges, run:"
+echo "  git tag $VERSION <merge commit SHA> && git push origin $VERSION"
+echo "  gh release create $VERSION Dist/* --verify-tag --title $VERSION --notes \"MediaPipeTasksVision $MEDIAPIPE_VERSION, built with $XCODE\""
 echo "  pod trunk push StripeMediaPipe.podspec"

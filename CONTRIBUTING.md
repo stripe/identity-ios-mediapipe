@@ -31,7 +31,8 @@ checksum update, goes through a pull request reviewed by a code owner.
    `make_release.sh` writes the assets to `Dist/` and updates the checksums in
    `Package.swift` and the version in `StripeMediaPipe.podspec`.
 3. Commit those changes, open a pull request, and get it approved and merged.
-   Keep `Dist/` as it is. Rebuilding produces different checksums.
+   Keep `Dist/` as it is. Rebuilding gives the same checksums only with the
+   same Xcode version.
 4. Tag the merge commit and publish the assets from step 2:
 
    ```bash
@@ -39,7 +40,7 @@ checksum update, goes through a pull request reviewed by a code owner.
    git tag <version> <merge commit SHA>
    git push origin <version>
    gh release create <version> Dist/* --verify-tag --title <version> \
-     --notes "MediaPipeTasksVision <MediaPipe version>"
+     --notes "MediaPipeTasksVision <MediaPipe version>, built with <Xcode version>"
    pod trunk push StripeMediaPipe.podspec
    ```
 

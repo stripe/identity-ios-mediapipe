@@ -44,6 +44,16 @@ create_static_graph_xcframework() {
     -output "${output_path}"
 
   strip_intel_simulator_slice "${output_path}" "${GRAPH_ARTIFACT_NAME}"
+
+  # xcodebuild lists the slices in a different order on each run, which would change the release checksums.
+  python3 - "${output_path}/Info.plist" <<'PY'
+import plistlib, sys
+with open(sys.argv[1], "rb") as f:
+    plist = plistlib.load(f)
+plist["AvailableLibraries"].sort(key=lambda library: library["LibraryIdentifier"])
+with open(sys.argv[1], "wb") as f:
+    plistlib.dump(plist, f)
+PY
 }
 
 write_framework_bundle() {
