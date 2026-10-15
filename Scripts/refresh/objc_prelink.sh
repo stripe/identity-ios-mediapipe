@@ -58,7 +58,8 @@ prelink_one_archive() {
   xcrun ld -r -arch "${arch}" -platform_version "${platform}" "${MIN_IOS_VERSION}" "${MIN_IOS_VERSION}" \
     -o "${work}/objc.o" "${merge[@]}"
 
-  xcrun libtool -static -o "${work}/new.a" "${work}/objc.o" ${keep[@]+"${keep[@]}"} 2>/dev/null
+  # -D leaves build times, user and umask out of the archive, so the release checksums are reproducible.
+  xcrun libtool -static -D -o "${work}/new.a" "${work}/objc.o" ${keep[@]+"${keep[@]}"} 2>/dev/null
   # the graph artifact is written read-only, so replace the file rather than write into it
   cp -f "${work}/new.a" "${archive}"
 

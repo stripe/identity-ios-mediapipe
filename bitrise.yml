@@ -1,0 +1,83 @@
+format_version: "23"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+
+meta:
+  bitrise.io:
+    # The same Xcode as stripe-ios, so the frameworks match what it links against.
+    stack: osx-xcode-26.4.x
+    machine_type_id: g2.mac.large
+
+app:
+  envs:
+    # Leave empty to build the version in VERSION. Set it when starting a build
+    # by hand to build the assets for a new version, for example 1.0.1.
+    - RELEASE_VERSION: ""
+      opts:
+        is_expand: false
+
+trigger_map:
+  - push_branch: main
+    workflow: build-xcframeworks
+  - pull_request_source_branch: "*"
+    workflow: build-xcframeworks
+
+workflows:
+  build-xcframeworks:
+    summary: Builds the xcframeworks and the release zips, and saves them as build artifacts.
+    description: |
+      Runs Scripts/refresh_artifacts.sh and Scripts/make_release.sh, the same
+      scripts as a local build. The Artifacts tab of the build has:
+
+      - MediaPipeTasksVision, MediaPipeCommonGraphLibraries and MediaPipeTasksCommon
+        .xcframework.zip, the files Swift Package Manager downloads
+      - StripeMediaPipe-<version>.zip, the file CocoaPods downloads
+      - checksums.txt, the checksums to put in Package.swift
+      - release.diff, the changes make_release.sh made to Package.swift and
+        StripeMediaPipe.podspec
+    steps:
+      - git-clone@8: {}
+      - restore-cache@2:
+          title: Restore the MediaPipe archives
+          inputs:
+            - key: mediapipe-archives-{{ checksum "MEDIAPIPE_SOURCES" }}
+      - script@1:
+          title: Build the xcframeworks
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euo pipefail
+
+                if [ -n "${RELEASE_VERSION}" ]; then
+                  [[ "${RELEASE_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
+                    { echo "error: ${RELEASE_VERSION} is not a version like 1.0.1" >&2; exit 1; }
+                  echo "${RELEASE_VERSION}" > VERSION
+                fi
+
+                xcodebuild -version
+                Scripts/refresh_artifacts.sh
+      - save-cache@1:
+          title: Save the MediaPipe archives
+          inputs:
+            - key: mediapipe-archives-{{ checksum "MEDIAPIPE_SOURCES" }}
+            - paths: .build/artifact-refresh/archives
+      - script@1:
+          title: Package the release assets
+          inputs:
+            - content: |
+                #!/usr/bin/env bash
+                set -euo pipefail
+
+                log="$(mktemp)"
+                Scripts/make_release.sh | tee "$log"
+                for name in MediaPipeTasksVision MediaPipeCommonGraphLibraries MediaPipeTasksCommon; do
+                  grep "^$name  " "$log"
+                done > Dist/checksums.txt
+                git diff -- VERSION Package.swift StripeMediaPipe.podspec > Dist/release.diff
+
+                echo "Built with $(xcodebuild -version | tr '\n' ' ')"
+                cat Dist/checksums.txt
+                cp -R Dist/. "${BITRISE_DEPLOY_DIR}/"
+      - deploy-to-bitrise-io@2:
+          inputs:
+            - notify_user_groups: none
