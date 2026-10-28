@@ -7,10 +7,10 @@ Contributions of any kind are welcome! If you've found a bug or have a feature r
 To make changes yourself, follow these steps:
 
 1. [Fork](https://help.github.com/articles/fork-a-repo/) this repository and [clone](https://help.github.com/articles/cloning-a-repository/) it locally.
-2. Install the tools. Building requires macOS with Xcode 16.3 or later; releases are built with Xcode 26.4.1. The test step below also needs [CocoaPods](https://cocoapods.org) (`gem install cocoapods`).
+2. Install the tools. Building requires macOS with Xcode 16.3 or later; releases are built with Xcode 26.4.1.
 3. Build the xcframeworks with `Scripts/refresh_artifacts.sh`. It downloads the MediaPipe archives listed in `MEDIAPIPE_SOURCES`, checks their SHA-256, and writes the repackaged frameworks to `Artifacts/`.
 4. Make your changes
-5. Test your changes. There is no test suite, so rebuild with `Scripts/refresh_artifacts.sh`, then point an app that uses `StripeIdentity` at your checkout with `pod 'StripeMediaPipe', :path => '<path to your clone>'` and check that selfie capture still detects a face on a device and on the simulator.
+5. Test your changes. There is no test suite, so rebuild with `Scripts/refresh_artifacts.sh` and, in `Package.swift`, temporarily replace the `url` and `checksum` of each binary target with `path: "Artifacts/<name>.xcframework"`. Point a `stripe-ios` checkout at your clone with `.package(path: "<path to your clone>")`, enable the `Identity` trait in an app that uses that checkout, and check that selfie capture still detects a face on a device and on the simulator.
 6. Submit a [pull request](https://help.github.com/articles/creating-a-pull-request-from-a-fork/)
 
 ## Releasing
@@ -28,8 +28,8 @@ checksum update, goes through a pull request reviewed by a code owner.
    Scripts/make_release.sh
    ```
 
-   `make_release.sh` writes the assets to `Dist/` and updates the checksums in
-   `Package.swift` and the version in `StripeMediaPipe.podspec`.
+   `make_release.sh` writes the assets to `Dist/` and updates the version and
+   checksums in `Package.swift`.
 3. Commit those changes, open a pull request, and get it approved and merged.
    Keep `Dist/` as it is. Rebuilding gives the same checksums only with the
    same Xcode version.
@@ -41,17 +41,12 @@ checksum update, goes through a pull request reviewed by a code owner.
    git push origin <version>
    gh release create <version> Dist/* --verify-tag --title <version> \
      --notes "MediaPipeTasksVision <MediaPipe version>, built with <Xcode version>"
-   pod trunk push StripeMediaPipe.podspec
    ```
-
-   Run `pod trunk push` from a checkout of the tag.
-5. Update the dependency in `stripe-ios`: `Package.swift`,
-   `StripeIdentity.podspec`, and `StripeIdentity.xcodeproj`.
+5. Update the dependency in `stripe-ios`: `Package.swift` and
+   `StripeIdentity.xcodeproj`.
 
 Swift Package Manager downloads the three xcframework archives from the release.
 Each xcframework carries `LICENSE-MediaPipe` and `NOTICE` at its root.
-CocoaPods uses `StripeMediaPipe-<version>.zip`, containing the frameworks,
-wrapper sources, licenses and `NOTICE`.
 
 ## Contributor License Agreement ([CLA](https://en.wikipedia.org/wiki/Contributor_License_Agreement))
 

@@ -87,10 +87,7 @@ open(path, "w").write(s)
 PY
 done
 
-reproducible_zip "$DIST/StripeMediaPipe-$VERSION.zip" "$ROOT" Artifacts Sources LICENSE LICENSE-MediaPipe NOTICE
-
 sed -i '' "s|^let version = \".*\"|let version = \"$VERSION\"|" "$ROOT/Package.swift"
-sed -i '' "s|^  s.version                  = '.*'|  s.version                  = '$VERSION'|" "$ROOT/StripeMediaPipe.podspec"
 
 # The checksums only reproduce with the same Xcode, so the release notes record it.
 XCODE="$(xcodebuild -version | head -1) ($(xcodebuild -version | awk '/Build version/ {print $3}'))"
@@ -99,4 +96,3 @@ echo
 echo "Assets are in Dist/. Commit Package.swift in a pull request. After it merges, run:"
 echo "  git tag $VERSION <merge commit SHA> && git push origin $VERSION"
 echo "  gh release create $VERSION Dist/* --verify-tag --title $VERSION --notes \"MediaPipeTasksVision $MEDIAPIPE_VERSION, built with $XCODE\""
-echo "  pod trunk push StripeMediaPipe.podspec"
