@@ -31,10 +31,8 @@ workflows:
 
       - MediaPipeTasksVision, MediaPipeCommonGraphLibraries and MediaPipeTasksCommon
         .xcframework.zip, the files Swift Package Manager downloads
-      - StripeMediaPipe-<version>.zip, the file CocoaPods downloads
       - checksums.txt, the checksums to put in Package.swift
-      - release.diff, the changes make_release.sh made to Package.swift and
-        StripeMediaPipe.podspec
+      - release.diff, the changes make_release.sh made to Package.swift
     steps:
       - git-clone@8: {}
       - restore-cache@2:
@@ -73,7 +71,7 @@ workflows:
                 for name in MediaPipeTasksVision MediaPipeCommonGraphLibraries MediaPipeTasksCommon; do
                   grep "^$name  " "$log"
                 done > Dist/checksums.txt
-                git diff -- VERSION Package.swift StripeMediaPipe.podspec > Dist/release.diff
+                git diff -- VERSION Package.swift > Dist/release.diff
 
                 echo "Built with $(xcodebuild -version | tr '\n' ' ')"
                 cat Dist/checksums.txt
